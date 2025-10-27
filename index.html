@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>🌍 World Flags Trivia — Farcaster Mini App</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: linear-gradient(135deg, #0a0e13 0%, #1a1f2e 100%);
+    color: #e7ecf0;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100dvh;
+    padding: 20px;
+  }
+  .wrap { width: min(900px, 96vw); position: relative; }
+  .card { background: #12171b; border: 1px solid #1f2a32; border-radius: 14px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+  .overlay { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(8,11,14,.85); backdrop-filter: blur(4px); padding: 16px; z-index: 100; }
+  .hidden { display: none !important; }
+  
+  h1 {
+    font-size: 28px;
+    font-weight: 900;
+    margin-bottom: 12px;
+    text-shadow: 0 2px 10px rgba(56,189,248,0.5);
+  }
+  
+  .muted {
+    color: #9aa7b1;
+    font-size: 14px;
+    line-height: 1.4;
+    margin-bottom: 16px;
+  }
+  
+  .btn-primary {
+    padding: 14px 28px;
+    background: linear-gradient(135deg, #ff8c42, #ff6b1a);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-weight: 900;
+    font-size: 16px;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(255,107,26,0.4);
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(255,107,26,0.5);
+  }
+  
+  .btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  .btn-secondary {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #38bdf8, #34d399);
+    color: #0a1929;
+    border: none;
+    border-radius: 10px;
+    font-weight: 900;
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(56,189,248,0.3);
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  
+  #canvas {
+    background: #0d1117;
+    border: 3px solid #1f2937;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    max-width: 100%;
+    display: block;
+    margin: 20px auto;
+    touch-action: none;
+  }
+  
+  #controls {
+    width: 100%;
+    margin-top: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .stats-row {
+    background: rgba(15,23,42,0.8);
+    border: 2px solid #1e293b;
+    border-radius: 12px;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    gap: 15px;
+    flex-wrap: wrap;
+  }
+  
+  .stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+  }
+  
+  .stat-label {
+    font-weight: 700;
+    font-size: 12px;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .stat-value {
+    font-size: 20px;
+    font-weight: 900;
+    color: #fbbf24;
+  }
+  
+  .question-panel {
+    background: rgba(15,23,42,0.9);
+    border: 2px solid #1e293b;
+    border-radius: 12px;
+    padding: 20px;
+  }
+  
+  .question-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #e7ecf0;
+    text-align: center;
+    margin-bottom: 15px;
+  }
+  
+  .options-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+  }
+  
+  .option-btn {
+    padding: 15px;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  
+  .option-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59,130,246,0.4);
+  }
+  
+  .option-btn:disabled {
+    cursor: not-allowed;
+  }
+  
+  .option-btn.correct {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+  }
+  
+  .option-btn.wrong {
+    background: linear-gradient(135deg, #6b7280, #4b5563);
+    opacity: 0.5;
+  }
+  
+  .feedback {
+    text-align: center;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: 700;
+    margin-top: 15px;
+  }
+  
+  .feedback.correct {
+    background: rgba(34,197,94,0.2);
+    color: #4ade80;
+    border: 2px solid #22c55e;
+  }
+  
+  .feedback.wrong {
+    background: rgba(239,68,68,0.2);
+    color: #f87171;
+    border: 2px solid #ef4444;
+  }
+  
+  #status {
+    margin-top: 15px;
+    font-size: 13px;
+    line-height: 1.5;
+    background: #0f151a;
+    border: 1px solid #1f2a32;
+    border-radius: 10px;
+    padding: 12px;
+  }
+  
+  #status b { color: #cde7d8; }
+  #status .ok { color: #4ade80; }
+  #status .warn { color: #fbbf24; }
+  #status .err { color: #f87171; }
+  #status a { color: #86c6ff; text-decoration: none; }
+  
+  #play-again {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    padding: 16px 32px;
+    background: linear-gradient(135deg, #ff8c42, #ff6b1a);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-weight: 900;
+    font-size: 18px;
+    cursor: pointer;
+    box-shadow: 0 10px 40px rgba(255,107,26,0.5);
+    z-index: 50;
+  }
+  
+  @media (max-width: 720px) {
+    .options-grid { grid-template-columns: 1fr; }
+    .stats-row { justify-content: space-between; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <!-- Intro Overlay -->
+    <div id="intro-overlay" class="overlay">
+      <div class="card" role="dialog" aria-modal="true">
+        <h1>🌍 Play World Flags Trivia</h1>
+        <p class="muted">A small Base transfer is required to start playing (mobile & desktop supported).</p>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+          <div class="muted" style="font-size: 12px;">Change recipient/amount in code if needed.</div>
+          <button id="play" class="btn-primary">💰 Pay & Play</button>
+        </div>
+        <div id="status" class="hidden"></div>
+      </div>
+    </div>
+
+    <canvas id="canvas" width="900" height="500"></canvas>
+    
+    <div id="controls">
+      <div class="stats-row">
+        <div class="stat-item">
+          <span class="stat-label">Score</span>
+          <span class="stat-value" id="scoreDisplay">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Streak</span>
+          <span class="stat-value" id="streakDisplay" style="color: #ef4444;">0🔥</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Lives</span>
+          <span class="stat-value" id="livesDisplay">❤️❤️❤️</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Correct</span>
+          <span class="stat-value" id="correctDisplay" style="color: #4ade80;">0</span>
+        </div>
+      </div>
+      
+      <div class="question-panel">
+        <h2 class="question-title">Which country does this flag belong to?</h2>
+        <div class="options-grid" id="optionsGrid"></div>
+        <div id="feedback" class="hidden"></div>
+      </div>
+    </div>
+
+    <button id="play-again" class="hidden">💰 Pay & Play Again</button>
+  </div>
+
+<script type="module">
+import { sdk } from 'https://esm.sh/@farcaster/miniapp-sdk';
+sdk.actions.ready();
+
+/* ===== CONFIG ===== */
+const USE_BASE_SEPOLIA = false;
+const RECIPIENT = "0x02212a875c56baE7AF27A5a389FD4e8A11442692";
+const AMOUNT_ETH = "0.00001";
+
+const BASE_MAINNET = { chainId: "0x2105",  explorer: "https://basescan.org/tx/" };
+const BASE_SEPOLIA = { chainId: "0x14a34", explorer: "https://sepolia.basescan.org/tx/" };
+const TARGET = USE_BASE_SEPOLIA ? BASE_SEPOLIA : BASE_MAINNET;
+
+/* ===== DOM ===== */
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const statusEl = document.getElementById('status');
+const playBtn = document.getElementById('play');
+const playAgainBtn = document.getElementById('play-again');
+const scoreDisplay = document.getElementById('scoreDisplay');
+const streakDisplay = document.getElementById('streakDisplay');
+const livesDisplay = document.getElementById('livesDisplay');
+const correctDisplay = document.getElementById('correctDisplay');
+const optionsGrid = document.getElementById('optionsGrid');
+const feedbackEl = document.getElementById('feedback');
+
+const showStatus = () => statusEl.classList.remove('hidden');
+const addLine = html => { showStatus(); statusEl.insertAdjacentHTML('beforeend', `<div>${html}</div>`); };
+const clearStatus = () => statusEl.innerHTML = '';
+const disable = (el, yes=true) => { if (el) el.disabled = yes; };
+
+/* ===== Wallet Helpers ===== */
+function parseEther(x) {
+  const [w, f=""] = String(x).split('.');
+  const frac = (f + '0'.repeat(18)).slice(0, 18);
+  return '0x' + (BigInt(w) * 10n**18n + BigInt(frac)).toString(16);
+}
+
+async function getProvider() {
+  try {
+    const p = await sdk.wallet.getEthereumProvider();
+    if (p) return p;
+  } catch {}
+  return window.ethereum ?? null;
+}
+
+async function ensureChain(provider, chainId) {
+  const current = (await provider.request({ method: 'eth_chainId' }))?.toLowerCase();
+  if (current === chainId.toLowerCase()) return;
+  try {
+    await provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId }] });
+  } catch (e) {
+    if (e?.code === 4902) {
+      await provider.request({ method: 'wallet_addEthereumChain', params: [{ chainId }] });
+      await provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId }] });
+    } else { throw e; }
+  }
+}
+
+async function requiredPayment() {
+  clearStatus();
+  addLine(`<b>Step 1:</b> Locating wallet provider…`);
+  const provider = await getProvider();
+  if (!provider) {
+    addLine(`<span class="err">No wallet available.</span> Open in Farcaster or enable a wallet.`);
+    throw new Error('NO_PROVIDER');
+  }
+  addLine(`<span class="ok">Provider ready.</span>`);
+
+  addLine(`<b>Step 2:</b> Requesting accounts…`);
+  const [from] = await provider.request({ method: 'eth_requestAccounts' });
+  addLine(`<span class="ok">Account: ${from.slice(0,6)}…${from.slice(-4)}</span>`);
+
+  addLine(`<b>Step 3:</b> Switching to Base${USE_BASE_SEPOLIA?' Sepolia':''}…`);
+  await ensureChain(provider, TARGET.chainId);
+  addLine(`<span class="ok">On Base${USE_BASE_SEPOLIA?' Sepolia':''}.</span>`);
+
+  addLine(`<b>Step 4:</b> Sending ${AMOUNT_ETH} ETH to ${RECIPIENT.slice(0,6)}…${RECIPIENT.slice(-4)}…`);
+  const hash = await provider.request({
+    method: 'eth_sendTransaction',
+    params: [{ from, to: RECIPIENT, value: parseEther(AMOUNT_ETH) }]
+  });
+  addLine(`<span class="ok">TX sent.</span> <a target="_blank" rel="noopener" href="${TARGET.explorer}${hash}">View on Basescan</a>`);
+  return hash;
+}
+
+async function payThen(action, triggerBtn) {
+  try {
+    disable(triggerBtn, true);
+    await requiredPayment();
+    await action();
+  } catch (e) {
+    console.warn('Payment gate blocked action:', e);
+    addLine(`<span class="warn">Payment required. Please try again.</span>`);
+  } finally {
+    disable(triggerBtn, false);
+  }
+}
+
+/* ===== FLAGS DATABASE ===== */
+const FLAGS_DATABASE = [
+  { country: 'United States', colors: ['#B22234', '#FFFFFF', '#3C3B6E'], type: 'usa' },
+  { country: 'France', colors: ['#0055A4', '#FFFFFF', '#EF4135'], type: 'vertical' },
+  { country: 'Germany', colors: ['#000000', '#DD0000', '#FFCE00'], type: 'horizontal' },
+  { country: 'Italy', colors: ['#009246', '#FFFFFF', '#CE2B37'], type: 'vertical' },
+  { country: 'Spain', colors: ['#AA151B', '#F1BF00'], type: 'spain' },
+  { country: 'Japan', colors: ['#FFFFFF', '#BC002D'], type: 'japan' },
+  { country: 'Brazil', colors: ['#009B3A', '#FFDF00', '#002776'], type: 'brazil' },
+  { country: 'Canada', colors: ['#FF0000', '#FFFFFF'], type: 'canada' },
+  { country: 'Mexico', colors: ['#006847', '#FFFFFF', '#CE1126'], type: 'vertical' },
+  { country: 'Argentina', colors: ['#74ACDF', '#FFFFFF'], type: 'argentina' },
+  { country: 'Russia', colors: ['#FFFFFF', '#0039A6', '#D52B1E'], type: 'horizontal' },
+  { country: 'Netherlands', colors: ['#AE1C28', '#FFFFFF', '#21468B'], type: 'horizontal' },
+  { country: 'Sweden', colors: ['#006AA7', '#FECC00'], type: 'sweden' },
+  { country: 'Switzerland', colors: ['#FF0000', '#FFFFFF'], type: 'switzerland' },
+  { country: 'Poland', colors: ['#FFFFFF', '#DC143C'], type: 'horizontal' },
+  { country: 'Greece', colors: ['#0D5EAF', '#FFFFFF'], type: 'greece' },
+  { country: 'Portugal', colors: ['#006600', '#FF0000'], type: 'vertical' },
+  { country: 'Belgium', colors: ['#000000', '#FDDA24', '#EF3340'], type: 'vertical' },
+  { country: 'Austria', colors: ['#ED2939', '#FFFFFF', '#ED2939'], type: 'horizontal' },
+  { country: 'Norway', colors: ['#BA0C2F', '#FFFFFF', '#00205B'], type: 'norway' }
+];
+
+/* ===== Game State ===== */
+let gameState = {
+  score: 0,
+  streak: 0,
+  lives: 3,
+  correct: 0,
+  total: 0,
+  currentQuestion: null,
+  options: [],
+  isAnswering: false,
+  gameActive: false
+};
+
+/* ===== Create Flag Texture ===== */
+function createFlagTexture(flagData) {
+  const canvas2d = document.createElement('canvas');
+  canvas2d.width = 600;
+  canvas2d.height = 400;
+  const ctx2d = canvas2d.getContext('2d');
+  
+  ctx2d.fillStyle = '#FFFFFF';
+  ctx2d.fillRect(0, 0, canvas2d.width, canvas2d.height);
+
+  const { colors, type } = flagData;
+
+  if (type === 'vertical') {
+    const stripeWidth = canvas2d.width / colors.length;
+    colors.forEach((color, i) => {
+      ctx2d.fillStyle = color;
+      ctx2d.fillRect(i * stripeWidth, 0, stripeWidth, canvas2d.height);
+    });
+  } else if (type === 'horizontal') {
+    const stripeHeight = canvas2d.height / colors.length;
+    colors.forEach((color, i) => {
+      ctx2d.fillStyle = color;
+      ctx2d.fillRect(0, i * stripeHeight, canvas2d.width, stripeHeight);
+    });
+  } else if (type === 'usa') {
+    for (let i = 0; i < 13; i++) {
+      ctx2d.fillStyle = i % 2 === 0 ? '#B22234' : '#FFFFFF';
+      ctx2d.fillRect(0, i * (canvas2d.height / 13), canvas2d.width, canvas2d.height / 13);
+    }
+    ctx2d.fillStyle = '#3C3B6E';
+    ctx2d.fillRect(0, 0, canvas2d.width * 0.4, canvas2d.height * 0.538);
+    ctx2d.fillStyle = '#FFFFFF';
+    const starSize = 8;
+    for (let row = 0; row < 9; row++) {
+      const cols = row % 2 === 0 ? 6 : 5;
+      const startX = row % 2 === 0 ? 30 : 50;
+      for (let col = 0; col < cols; col++) {
+        const x = startX + col * 40;
+        const y = 20 + row * 23;
+        ctx2d.beginPath();
+        ctx2d.arc(x, y, starSize, 0, Math.PI * 2);
+        ctx2d.fill();
+      }
+    }
+  } else if (type === 'japan') {
+    ctx2d.fillStyle = '#FFFFFF';
+    ctx2d.fillRect(0, 0, canvas2d.width, canvas2d.height);
+    ctx2d.fillStyle = '#BC002D';
+    ctx2d.beginPath();
+    ctx2d.arc(canvas2d.width / 2, canvas2d.height / 2, 100, 0, Math.PI * 2);
+    ctx2d.fill();
+  } else if (type === 'canada') {
+    ctx2d.fillStyle = '#FF0000';
+    ctx2d.fillRect(0, 0, canvas2d.width * 0.25, canvas2d.height);
+    ctx2d.fillRect(canvas2d.width * 0.75, 0, canvas2d.width * 0.25, canvas2d.height);
+    ctx2d.fillStyle = '#FFFFFF';
+    ctx2d.fillRect(canvas2d.width * 0.25, 0, canvas2d.width * 0.5, canvas2d.height);
+    ctx2d.fillStyle = '#FF0000';
+    const cx = canvas2d.width / 2;
+    const cy = canvas2d.height / 2;
+    ctx2d.beginPath();
+    ctx2d.moveTo(cx, cy - 60);
+    ctx2d.lineTo(cx + 20, cy - 20);
+    ctx2d.lineTo(cx + 50, cy - 30);
+    ctx2d.lineTo(cx + 25, cy);
+    ctx2d.lineTo(cx + 35, cy + 40);
+    ctx2d.lineTo(cx, cy + 20);
+    ctx2d.lineTo(cx - 35, cy + 40);
+    ctx2d.lineTo(cx - 25, cy);
+    ctx2d.lineTo(cx - 50, cy - 30);
+    ctx2d.lineTo(cx - 20, cy - 20);
+    ctx2d.closePath();
+    ctx2d.fill();
+  } else if (type === 'switzerland') {
+    ctx2d.fillStyle = '#FF0000';
+    ctx2d.fillRect(0, 0, canvas2d.width, canvas2d.height);
+    ctx2d.fillStyle = '#FFFFFF';
+    const w = 80, h = 240;
+    ctx2d.fillRect((canvas2d.width - w) / 2, (canvas2d.height - h) / 2, w, h);
+    ctx2d.fillRect((canvas2d.width - h) / 2, (canvas2d.height - w) / 2, h, w);
+  } else if (type === 'sweden' || type === 'norway') {
+    ctx2d.fillStyle = colors[0];
+    ctx2d.fillRect(0, 0, canvas2d.width, canvas2d.height);
+    if (type === 'norway') {
+      ctx2d.fillStyle = '#FFFFFF';
+      ctx2d.fillRect(canvas2d.width * 0.27, 0, canvas2d.width * 0.13, canvas2d.height);
+      ctx2d.fillRect(0, canvas2d.height * 0.37, canvas2d.width, canvas2d.height * 0.26);
+      ctx2d.fillStyle = '#00205B';
+      ctx2d.fillRect(canvas2d.width * 0.3, 0, canvas2d.width * 0.07, canvas2d.height);
+      ctx2d.fillRect(0, canvas2d.height * 0.43, canvas2d.width, canvas2d.height * 0.14);
+    } else {
+      ctx2d.fillStyle = colors[1];
+      ctx2d.fillRect(canvas2d.width * 0.3, 0, canvas2d.width * 0.1, canvas2d.height);
+      ctx2d.fillRect(0, canvas2d.height * 0.4, canvas2d.width, canvas2d.height * 0.2);
+    }
+  } else if (type === 'brazil') {
+    ctx2d.fillStyle = '#009B3A';
+    ctx2d.fillRect(0, 0, canvas2d.width, canvas2d.height);
+    ctx2d.fillStyle = '#FFDF00';
+    ctx2d.beginPath();
+    ctx2d.moveTo(canvas2d.width / 2, canvas2d.height * 0.1);
+    ctx2d.lineTo(canvas2d.width * 0.9, canvas2d.height / 2);
+    ctx2d.lineTo(canvas2d.width / 2, canvas2d.height * 0.9);
+    ctx2d.lineTo(canvas2d.width * 0.1, canvas2d.height / 2);
+    ctx2d.closePath();
+    ctx2d.fill();
+    ctx2d.fillStyle = '#002776';
+    ctx2d.beginPath();
+    ctx2d.arc(canvas2d.width / 2, canvas2d.height / 2, 80, 0, Math.PI * 2);
+    ctx2d.fill();
+  } else if (type === 'argentina') {
+    ctx2d.fillStyle = colors[0];
+    ctx2d.fillRect(0, 0, canvas2d.width, canvas2d.height * 0.33);
+    ctx2d.fillRect(0, canvas2d.height * 0.67, canvas2d.width, canvas2d.height * 0.33);
+    ctx2d.fillStyle = colors[1];
+    ctx2d.fillRect(0, canvas2d.height * 0.33, canvas2d.width, canvas2d.height * 0.34);
+    ctx2d.fillStyle = '#FCBF49';
+    ctx2d.beginPath();
+    ctx2d.arc(canvas2d.width / 2, canvas2d.height / 2, 40, 0, Math.PI * 2);
+    ctx2d.fill();
+  } else if (type === 'spain') {
+    ctx2d.fillStyle = colors[0];
+    ctx2d.fillRect(0, 0, canvas2d.width, canvas2d.height * 0.25);
+    ctx2d.fillRect(0, canvas2d.height * 0.75, canvas2d.width, canvas2d.height * 0.25);
+    ctx2d.fillStyle = colors[1];
+    ctx2d.fillRect(0, canvas2d.height * 0.25, canvas2d.width, canvas2d.height * 0.5);
+  } else if (type === 'greece') {
+    for (let i = 0; i < 9; i++) {
+      ctx2d.fillStyle = i % 2 === 0 ? colors[0] : colors[1];
+      ctx2d.fillRect(0, i * (canvas2d.height / 9), canvas2d.width, canvas2d.height / 9);
+    }
+    ctx2d.fillStyle = colors[0];
+    ctx2d.fillRect(0, 0, canvas2d.width * 0.37, canvas2d.height * 0.55);
+    ctx2d.fillStyle = colors[1];
+    ctx2d.fillRect(canvas2d.width * 0.14, 0, canvas2d.width * 0.09, canvas2d.height * 0.55);
+    ctx2d.fillRect(0, canvas2d.height * 0.22, canvas2d.width * 0.37, canvas2d.height * 0.11);
+  }
+
+  return canvas2d;
+}
+
+/* ===== Draw Flag on Canvas ===== */
+let flagTexture = null;
+let time = 0;
+
+function drawFlag() {
+  if (!flagTexture) return;
+  
+  const w = 700;
+  const h = 467;
+  const x = (canvas.width - w) / 2;
+  const y = (canvas.height - h) / 2;
+  
+  ctx.save();
+  ctx.translate(x + w / 2, y + h / 2);
+  ctx.rotate(Math.sin(time * 0.5) * 0.05);
+  ctx.translate(-w / 2, -h / 2);
+  
+  // Wave effect
+  for (let i = 0; i < w; i += 10) {
+    const waveY = Math.sin(i * 0.02 + time * 2) * 5;
+    ctx.drawImage(flagTexture, i, 0, 10, h, i, waveY, 10, h);
+  }
+  
+  ctx.restore();
+  time += 0.016;
+}
+
+/* ===== Load New Question ===== */
+function loadNewQuestion() {
+  const correctFlag = FLAGS_DATABASE[Math.floor(Math.random() * FLAGS_DATABASE.length)];
+  
+  const wrongOptions = [];
+  while (wrongOptions.length < 3) {
+    const randomFlag = FLAGS_DATABASE[Math.floor(Math.random() * FLAGS_DATABASE.length)];
+    if (randomFlag.country !== correctFlag.country && 
+        !wrongOptions.includes(randomFlag.country)) {
+      wrongOptions.push(randomFlag.country);
+    }
+  }
+
+  const allOptions = [...wrongOptions, correctFlag.country]
+    .sort(() => Math.random() - 0.5);
+  
+  gameState.currentQuestion = correctFlag;
+  gameState.options = allOptions;
+  gameState.isAnswering = false;
+
+  flagTexture = createFlagTexture(correctFlag);
+  
+  feedbackEl.classList.add('hidden');
+  optionsGrid.innerHTML = '';
+  
+  allOptions.forEach(option => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.textContent = option;
+    btn.onclick = () => handleAnswer(
